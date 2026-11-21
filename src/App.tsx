@@ -3,8 +3,17 @@ import { useNode } from "./useNode";
 import { bytes, clock, pct, uptime } from "./format";
 import type { PlayerRow } from "./types";
 import { resolveSources } from "./sources";
+import Navbar from "./Navbar";
 
 const HISTORY = 40;
+
+/**
+ * Simple Icons serves each logo in its official brand color when no color is given in the url.
+ * Brands whose color is black would disappear on the dark chips, so they get an explicit override.
+ */
+const ICON_COLOR_OVERRIDE: Record<string, string> = {
+  tidal: "ffffff",
+};
 
 interface Service {
   key: string;
@@ -17,15 +26,16 @@ function Logo({ service }: { service: Service }) {
   if (broken) {
     return <span className="text-2xl font-semibold text-[var(--color-accent-soft)]">{service.name.slice(0, 1).toUpperCase()}</span>;
   }
+  const override = ICON_COLOR_OVERRIDE[service.slug];
   return (
     <img
-      src={`https://cdn.simpleicons.org/${service.slug}/ffffff`}
+      src={`https://cdn.simpleicons.org/${service.slug}${override ? `/${override}` : ""}`}
       alt=""
       width={32}
       height={32}
       loading="lazy"
       onError={() => setBroken(true)}
-      className="h-8 w-8 opacity-70 transition-opacity duration-200 group-hover:opacity-100"
+      className="h-8 w-8"
     />
   );
 }
@@ -159,11 +169,10 @@ export default function App() {
 
   return (
     <>
-      {info && (
-        <div className="fade-in pt-6">
-          <Services enabled={info.sourceManagers} />
-        </div>
-      )}
+      <Navbar />
+
+      {/* The navbar is fixed and 68px tall, so content starts below it. */}
+      <div className="fade-in pt-24">{info && <Services enabled={info.sourceManagers} />}</div>
 
       <main className="mx-auto w-full max-w-2xl px-5 pt-4 pb-16 sm:pt-8">
         <h1 className="fade-in text-2xl leading-tight font-semibold tracking-tight sm:text-3xl">Stains music status</h1>
