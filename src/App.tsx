@@ -15,26 +15,26 @@ interface Service {
 function Logo({ service }: { service: Service }) {
   const [broken, setBroken] = useState(service.slug === "");
   if (broken) {
-    return <span className="text-sm font-semibold text-[var(--color-accent-soft)]">{service.name.slice(0, 1).toUpperCase()}</span>;
+    return <span className="text-2xl font-semibold text-[var(--color-accent-soft)]">{service.name.slice(0, 1).toUpperCase()}</span>;
   }
   return (
     <img
       src={`https://cdn.simpleicons.org/${service.slug}/ffffff`}
       alt=""
-      width={20}
-      height={20}
+      width={32}
+      height={32}
       loading="lazy"
       onError={() => setBroken(true)}
-      className="h-5 w-5 opacity-60 transition-opacity duration-200 group-hover:opacity-100"
+      className="h-8 w-8 opacity-70 transition-opacity duration-200 group-hover:opacity-100"
     />
   );
 }
 
 function Chip({ service }: { service: Service }) {
   return (
-    <div className="group relative grid h-11 w-11 shrink-0 cursor-default place-items-center rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-1)] transition-colors duration-200 hover:border-white/25 hover:bg-[var(--color-surface-2)]">
+    <div className="group relative grid h-16 w-16 shrink-0 cursor-default place-items-center rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface-1)] transition-colors duration-200 hover:border-white/25 hover:bg-[var(--color-surface-2)]">
       <Logo service={service} />
-      <span className="pointer-events-none absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 translate-y-1 rounded-md border border-[var(--color-line)] bg-[var(--color-surface-2)] px-2.5 py-1 text-xs font-medium whitespace-nowrap text-[var(--color-fg)] opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+      <span className="pointer-events-none absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 translate-y-1 rounded-md border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 py-1.5 text-sm font-medium whitespace-nowrap text-[var(--color-fg)] opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
         {service.name}
       </span>
     </div>
@@ -51,14 +51,14 @@ function Services({ enabled }: { enabled: string[] }) {
   ];
   if (services.length === 0) return null;
 
-  // One half of the loop must be wider than any screen (each chip takes 60px with its gap),
+  // One half of the loop must be wider than any screen (each chip takes 80px with its gap),
   // otherwise the right side goes blank while the strip scrolls.
   const reps = Math.max(1, Math.ceil(46 / services.length));
   const half = Array.from({ length: reps }, () => services).flat();
 
   return (
-    <div className="marquee-wrap overflow-hidden pb-10" aria-label="Available services">
-      <div className="marquee" style={{ animationDuration: `${Math.round(half.length * 1.6)}s` }}>
+    <div className="marquee-wrap overflow-hidden pb-14" aria-label="Available services">
+      <div className="marquee" style={{ animationDuration: `${Math.round(half.length * 1.8)}s` }}>
         {[0, 1].map((copy) =>
           half.map((s, i) => (
             <div key={`${copy}-${i}`} aria-hidden={copy === 1 ? true : undefined}>
