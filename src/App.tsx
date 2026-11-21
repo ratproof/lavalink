@@ -1,16 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNode } from "./useNode";
 import { bytes, clock, pct, uptime } from "./format";
-import { ClockIcon, CpuIcon, MemoryIcon, SignalIcon, UsersIcon } from "./icons";
 import type { PlayerRow } from "./types";
 import { resolveSources } from "./sources";
 
-/** simple-icons slugs where they differ from our source ids. Anything missing falls back to a letter. */
-const SLUGS: Record<string, string> = {
-  http: "",
-  applemusic: "applemusic",
-  yandexmusic: "yandexmusic",
-};
+const HISTORY = 40;
 
 interface Service {
   key: string;
@@ -21,26 +15,26 @@ interface Service {
 function Logo({ service }: { service: Service }) {
   const [broken, setBroken] = useState(service.slug === "");
   if (broken) {
-    return <span className="text-base font-semibold text-[var(--color-accent-soft)]">{service.name.slice(0, 1).toUpperCase()}</span>;
+    return <span className="text-sm font-semibold text-[var(--color-accent-soft)]">{service.name.slice(0, 1).toUpperCase()}</span>;
   }
   return (
     <img
       src={`https://cdn.simpleicons.org/${service.slug}/ffffff`}
       alt=""
-      width={22}
-      height={22}
+      width={20}
+      height={20}
       loading="lazy"
       onError={() => setBroken(true)}
-      className="h-[22px] w-[22px] opacity-70 transition-opacity duration-200 group-hover:opacity-100"
+      className="h-5 w-5 opacity-60 transition-opacity duration-200 group-hover:opacity-100"
     />
   );
 }
 
 function Chip({ service }: { service: Service }) {
   return (
-    <div className="group relative grid h-14 w-14 shrink-0 cursor-default place-items-center rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface-1)] transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--color-brand)_60%,transparent)] hover:bg-[var(--color-surface-2)]">
+    <div className="group relative grid h-11 w-11 shrink-0 cursor-default place-items-center rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-1)] transition-colors duration-200 hover:border-white/25 hover:bg-[var(--color-surface-2)]">
       <Logo service={service} />
-      <span className="pointer-events-none absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 translate-y-1 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-2)] px-2.5 py-1 text-xs font-medium whitespace-nowrap text-[var(--color-fg)] opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+      <span className="pointer-events-none absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 translate-y-1 rounded-md border border-[var(--color-line)] bg-[var(--color-surface-2)] px-2.5 py-1 text-xs font-medium whitespace-nowrap text-[var(--color-fg)] opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
         {service.name}
       </span>
     </div>
@@ -51,18 +45,20 @@ function Chip({ service }: { service: Service }) {
 function Services({ enabled }: { enabled: string[] }) {
   const { popular, other } = resolveSources(enabled);
   const services: Service[] = [
-    ...popular.filter((s) => s.enabled).map((s) => ({ key: s.id, name: s.name, slug: SLUGS[s.id] ?? s.id })),
+    // "Direct links" is not a service, so it stays out of the strip.
+    ...popular.filter((s) => s.enabled && s.id !== "http").map((s) => ({ key: s.id, name: s.name, slug: s.id })),
     ...other.map((n) => ({ key: n, name: n, slug: n.toLowerCase().replace(/[^a-z0-9]/g, "") })),
   ];
   if (services.length === 0) return null;
 
-  // Repeat the list so one half of the loop is always wider than the screen.
-  const reps = Math.max(1, Math.ceil(14 / services.length));
+  // One half of the loop must be wider than any screen (each chip takes 60px with its gap),
+  // otherwise the right side goes blank while the strip scrolls.
+  const reps = Math.max(1, Math.ceil(46 / services.length));
   const half = Array.from({ length: reps }, () => services).flat();
 
   return (
-    <div className="marquee-wrap overflow-hidden pb-11" aria-label="Available services">
-      <div className="marquee" style={{ animationDuration: `${Math.max(30, half.length * 4)}s` }}>
+    <div className="marquee-wrap overflow-hidden pb-10" aria-label="Available services">
+      <div className="marquee" style={{ animationDuration: `${Math.round(half.length * 1.6)}s` }}>
         {[0, 1].map((copy) =>
           half.map((s, i) => (
             <div key={`${copy}-${i}`} aria-hidden={copy === 1 ? true : undefined}>
@@ -75,28 +71,48 @@ function Services({ enabled }: { enabled: string[] }) {
   );
 }
 
-function Bar({ value }: { value: number }) {
+function MiniBar({ value }: { value: number }) {
   const v = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
   return (
-    <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--color-surface-2)]">
-      <div className="bg-grad h-full rounded-full transition-[width] duration-500" style={{ width: `${v * 100}%` }} />
+    <div className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-white/10 sm:block">
+      <div className="h-full rounded-full bg-[var(--color-accent-soft)] transition-[width] duration-500" style={{ width: `${v * 100}%` }} />
     </div>
   );
 }
 
-function Stat({ icon, label, value, bar }: { icon: ReactNode; label: string; value: string; bar?: number }) {
+function Row({ name, value, bar }: { name: string; value: ReactNode; bar?: number }) {
   return (
-    <div className="card rounded-2xl p-5 text-left">
-      <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-        <span className="text-[var(--color-accent-soft)]">{icon}</span>
-        {label}
+    <div className="flex items-center justify-between gap-4 border-b border-[var(--color-line)] px-5 py-4 last:border-0">
+      <span className="font-medium">{name}</span>
+      <span className="flex items-center gap-4 text-sm text-[var(--color-text-muted)]">
+        {bar !== undefined && <MiniBar value={bar} />}
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function Panel({ children }: { children: ReactNode }) {
+  return <div className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-1)]">{children}</div>;
+}
+
+function Checks({ history }: { history: boolean[] }) {
+  const empty = Array.from({ length: HISTORY - history.length }, () => null);
+  const slots: (boolean | null)[] = [...empty, ...history];
+  return (
+    <div>
+      <div className="flex h-9 items-stretch gap-[3px]">
+        {slots.map((s, i) => (
+          <div
+            key={i}
+            className={`flex-1 rounded-[3px] ${s === null ? "bg-white/[0.06]" : s ? "bg-emerald-400/80" : "bg-red-400/80"}`}
+          />
+        ))}
       </div>
-      <div className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{value}</div>
-      {bar !== undefined && (
-        <div className="mt-3">
-          <Bar value={bar} />
-        </div>
-      )}
+      <div className="mt-2 flex justify-between text-xs text-[var(--color-text-muted)]">
+        <span>Checks since you opened this page</span>
+        <span>Now</span>
+      </div>
     </div>
   );
 }
@@ -105,84 +121,89 @@ function NowPlaying({ players }: { players: PlayerRow[] }) {
   const active = players.filter((p) => p.title);
   if (active.length === 0) return null;
   return (
-    <div className="card mt-4 rounded-2xl p-5 text-left">
-      <div className="mb-3 text-sm text-[var(--color-text-muted)]">Now playing</div>
-      <ul className="divide-y divide-[var(--color-line)]">
+    <section className="mt-8">
+      <h2 className="mb-3 text-sm font-medium text-[var(--color-text-muted)]">Now playing</h2>
+      <Panel>
         {active.map((p) => (
-          <li key={p.guildId} className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+          <div key={p.guildId} className="flex items-center justify-between gap-4 border-b border-[var(--color-line)] px-5 py-3.5 last:border-0">
             <div className="min-w-0">
               <div className="truncate text-sm font-medium">{p.title}</div>
               <div className="truncate text-sm text-[var(--color-text-muted)]">{p.author}</div>
             </div>
-            <div className="shrink-0 text-sm text-[var(--color-text-muted)]">
-              {p.paused ? "Paused" : p.isStream ? "Live" : clock(p.position)}
-            </div>
-          </li>
+            <span className="shrink-0 text-sm text-[var(--color-text-muted)]">{p.paused ? "Paused" : p.isStream ? "Live" : clock(p.position)}</span>
+          </div>
         ))}
-      </ul>
-    </div>
+      </Panel>
+    </section>
   );
 }
 
 export default function App() {
   const { data, failed } = useNode();
+  const [history, setHistory] = useState<boolean[]>([]);
+
+  useEffect(() => {
+    if (data) setHistory((h) => [...h, data.online].slice(-HISTORY));
+  }, [data]);
+
   const online = data?.online === true;
   const stats = data?.stats ?? null;
   const info = data?.info ?? null;
 
-  const dot = data === null ? "bg-zinc-500" : online ? "bg-emerald-400" : "bg-red-400";
-  const label = data === null ? (failed ? "Status api unreachable" : "Checking node") : online ? "Online" : "Offline";
+  const tone =
+    data === null
+      ? { box: "border-white/10 bg-white/[0.04] text-zinc-300", dot: "bg-zinc-400", text: failed ? "Status api unreachable" : "Checking node..." }
+      : online
+        ? { box: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300", dot: "bg-emerald-400", text: "Node is operational" }
+        : { box: "border-red-400/25 bg-red-400/10 text-red-300", dot: "bg-red-400", text: "Node is not responding" };
 
   return (
     <>
       {info && (
-        <div className="fade-in pt-8">
+        <div className="fade-in pt-6">
           <Services enabled={info.sourceManagers} />
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-4xl px-5 pt-6 pb-20 text-center sm:pt-12">
-        <div className="fade-in inline-flex items-center gap-2.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface-1)] px-4 py-1.5 text-sm text-[var(--color-text-muted)]">
-          <span className="relative flex h-2.5 w-2.5">
-            {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />}
-            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${dot}`} aria-hidden />
-          </span>
-          {label}
-          {online && data?.latency != null && (
-            <span className="flex items-center gap-1.5 border-l border-[var(--color-line)] pl-2.5">
-              <SignalIcon width={14} height={14} />
-              {data.latency} ms
+      <main className="mx-auto w-full max-w-2xl px-5 pt-4 pb-16 sm:pt-8">
+        <h1 className="fade-in text-2xl leading-tight font-semibold tracking-tight sm:text-3xl">Stains music status</h1>
+
+        <div className={`fade-in mt-6 flex items-center justify-between gap-4 rounded-xl border px-5 py-4 ${tone.box}`}>
+          <span className="flex items-center gap-3 font-medium">
+            <span className="relative flex h-2.5 w-2.5">
+              {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />}
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${tone.dot}`} aria-hidden />
             </span>
-          )}
+            {tone.text}
+          </span>
+          {online && data?.latency != null && <span className="text-sm opacity-80">{data.latency} ms</span>}
         </div>
 
-        <h1 className="text-grad fade-in mt-6">Lavalink node</h1>
-        <p className="mx-auto mt-4 max-w-md text-[var(--color-text-muted)]">Live status of the node that powers Stains music.</p>
-
-        {data && !online && (
-          <div className="card mx-auto mt-10 max-w-xl rounded-2xl p-6 text-left">
-            <h3 className="text-lg font-semibold">The node did not answer</h3>
-            <p className="mt-2 text-sm text-[var(--color-text-muted)]">{data.error ?? "No response."}</p>
-          </div>
-        )}
+        {data && !online && <p className="mt-3 text-sm text-[var(--color-text-muted)]">{data.error ?? "No response."}</p>}
 
         {stats && info && (
-          <div className="fade-in mt-12">
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <Stat icon={<UsersIcon width={18} height={18} />} label="Players" value={`${stats.playingPlayers} / ${stats.players}`} />
-              <Stat icon={<ClockIcon width={18} height={18} />} label="Uptime" value={uptime(stats.uptime)} />
-              <Stat icon={<CpuIcon width={18} height={18} />} label="CPU" value={pct(stats.cpu.lavalinkLoad)} bar={stats.cpu.lavalinkLoad} />
-              <Stat
-                icon={<MemoryIcon width={18} height={18} />}
-                label="Memory"
-                value={bytes(stats.memory.used)}
-                bar={stats.memory.allocated > 0 ? stats.memory.used / stats.memory.allocated : 0}
-              />
-            </div>
+          <div className="fade-in">
+            <section className="mt-8">
+              <h2 className="mb-3 text-sm font-medium text-[var(--color-text-muted)]">Node</h2>
+              <Panel>
+                <Row name="Voice players" value={`${stats.playingPlayers} playing, ${stats.players} connected`} />
+                <Row name="Uptime" value={uptime(stats.uptime)} />
+                <Row name="CPU" value={pct(stats.cpu.lavalinkLoad)} bar={stats.cpu.lavalinkLoad} />
+                <Row
+                  name="Memory"
+                  value={bytes(stats.memory.used)}
+                  bar={stats.memory.allocated > 0 ? stats.memory.used / stats.memory.allocated : 0}
+                />
+              </Panel>
+            </section>
+
+            <section className="mt-8">
+              <Checks history={history} />
+            </section>
 
             {data?.players && <NowPlaying players={data.players} />}
 
-            <p className="mt-8 text-sm text-[var(--color-text-muted)]">Lavalink {info.version.semver}</p>
+            <p className="mt-10 text-xs text-[var(--color-text-muted)]">Lavalink {info.version.semver}. Refreshes every 5 seconds.</p>
           </div>
         )}
       </main>
