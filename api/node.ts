@@ -7,12 +7,15 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const TIMEOUT_MS = 4000;
 
+// Fallbacks used when the env vars are not set in Vercel. Keep this repo private.
+const DEFAULT_URL = "https://audio.stains.rocks";
+const DEFAULT_PASSWORD = "youshallnotpass";
+
 async function lavalink<T>(path: string): Promise<{ data: T; ms: number }> {
-  const base = process.env.LAVALINK_URL?.replace(/\/+$/, "");
-  if (!base) throw new Error("LAVALINK_URL is not set");
+  const base = (process.env.LAVALINK_URL || DEFAULT_URL).replace(/\/+$/, "");
   const start = Date.now();
   const res = await fetch(base + path, {
-    headers: { Authorization: process.env.LAVALINK_PASSWORD ?? "" },
+    headers: { Authorization: process.env.LAVALINK_PASSWORD || DEFAULT_PASSWORD },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`${path} returned ${res.status}`);
