@@ -1,44 +1,95 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 
-export type ScrollNavLink = { label: string; href: string; current?: boolean };
+const SITE = "https://stains.rocks";
+const INVITE_URL = "https://discord.com/oauth2/authorize?client_id=1571608833565004047";
+const SUPPORT_URL = "https://discord.gg/longest";
+
+export type ScrollNavLink = { label: string; href: string; icon?: ReactNode; newTab?: boolean; current?: boolean };
 
 export type NavbarProps = {
   brand?: ReactNode;
   links?: ScrollNavLink[];
-  socialUrl?: string;
+  inviteUrl?: string;
 };
 
-const SITE = "https://stains.rocks";
-
-const DEFAULT_LINKS: ScrollNavLink[] = [
-  { label: "Commands", href: `${SITE}/commands` },
-  { label: "Embeds", href: `${SITE}/embeds` },
-  { label: "Status", href: `${SITE}/status` },
-  { label: "Support", href: "https://discord.gg/longest" },
-];
-
-function DiscordIcon() {
+function CommandsIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path
-        fill="currentColor"
-        d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.1 14.1 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .079.01c.12.1.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03ZM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418Z"
-      />
+      <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm3.3 4.3a1 1 0 0 0 0 1.4L9.6 12l-2.3 2.3a1 1 0 1 0 1.4 1.4l3-3a1 1 0 0 0 0-1.4l-3-3a1 1 0 0 0-1.4 0ZM13 15a1 1 0 1 0 0 2h3.5a1 1 0 1 0 0-2H13Z" />
     </svg>
   );
 }
 
+function EmbedsIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm1 3v10h1.5V7H6Zm4 1v1.6h8V8h-8Zm0 3.2v1.6h8v-1.6h-8Zm0 3.2V16h5v-1.6h-5Z" />
+    </svg>
+  );
+}
+
+function StatusIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.7 7.3a1 1 0 0 1 0 1.4l-5 5a1 1 0 0 1-1.4 0l-2.5-2.5a1 1 0 1 1 1.4-1.4l1.8 1.8 4.3-4.3a1 1 0 0 1 1.4 0Z" />
+    </svg>
+  );
+}
+
+function SupportIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-6.4l-4 3.4a.8.8 0 0 1-1.3-.6V18H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+    </svg>
+  );
+}
+
+function InviteIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v4h4v2h-4v4h-2v-4H7v-2h4V7Z" />
+    </svg>
+  );
+}
+
+const DEFAULT_LINKS: ScrollNavLink[] = [
+  { label: "Commands", href: `${SITE}/commands`, icon: <CommandsIcon /> },
+  { label: "Embeds", href: `${SITE}/embeds`, icon: <EmbedsIcon /> },
+  { label: "Status", href: "/", icon: <StatusIcon />, current: true },
+  { label: "Support", href: SUPPORT_URL, icon: <SupportIcon />, newTab: true },
+];
+
 export default function Navbar({
   brand = (
     <>
-      stains<span>.</span>
+      <img src={`${SITE}/favicon.png`} alt="" width={24} height={24} />
+      stains
     </>
   ),
   links = DEFAULT_LINKS,
-  socialUrl = "https://discord.com/oauth2/authorize?client_id=1571608833565004047",
+  inviteUrl = INVITE_URL,
 }: NavbarProps) {
   const [atTop, setAtTop] = useState(true);
   const [direction, setDirection] = useState<"up" | "down">("up");
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const hoverTimer = useRef(0);
+
+  // Hover intent: only open a label once the pointer rests on an icon, so a fast
+  // sweep across the bar never starts the expand/collapse loop.
+  const hoverProps = (key: string) => ({
+    className: openKey === key ? "is-open" : undefined,
+    onPointerEnter: (e: ReactPointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      window.clearTimeout(hoverTimer.current);
+      hoverTimer.current = window.setTimeout(() => setOpenKey(key), 90);
+    },
+    onPointerLeave: () => {
+      window.clearTimeout(hoverTimer.current);
+      setOpenKey(null);
+    },
+  });
+
+  useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -50,7 +101,6 @@ export default function Navbar({
       setAtTop(y < 8);
       if (delta > 4) setDirection("down");
       else if (delta < -4) setDirection("up");
-
       lastY = y;
       frame = 0;
     };
@@ -80,14 +130,23 @@ export default function Navbar({
           </a>
           <div className="msn-links">
             {links.map((link) => (
-              <a aria-current={link.current ? "page" : undefined} href={link.href} key={link.label}>
-                {link.label}
+              <a
+                aria-label={link.label}
+                aria-current={link.current ? "page" : undefined}
+                href={link.href}
+                key={link.label}
+                {...hoverProps(link.label)}
+                {...(link.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+              >
+                {link.icon}
+                <span className="msn-label">{link.label}</span>
               </a>
             ))}
           </div>
           <div className="msn-actions">
-            <a className="msn-button msn-icon-button" href={socialUrl} target="_blank" rel="noreferrer" aria-label="Open Discord in a new tab">
-              <DiscordIcon />
+            <a href={inviteUrl} target="_blank" rel="noreferrer" aria-label="Invite" {...hoverProps("invite")}>
+              <InviteIcon />
+              <span className="msn-label">Invite</span>
             </a>
           </div>
         </div>
@@ -96,15 +155,29 @@ export default function Navbar({
   );
 }
 
-// Same styles as stains-web. This site is always dark, so the dark tokens are the defaults.
+// Same styles as the stains-web navbar (src/components/ui/morphing-scroll-navbar.tsx).
 const STYLES = `
-.msn-nav{--paper:#101310;--surface:#171b18;--ink:#edf1ee;--muted:#9aa49e;--line:#303832;--accent:#5fc9a1;position:fixed;z-index:100;top:0;right:0;left:0;display:flex;justify-content:center;padding:0 20px;pointer-events:none;font-family:"Geist Variable",ui-sans-serif,system-ui,sans-serif;color:var(--ink)}
-.msn-nav *{box-sizing:border-box}.msn-nav a{color:inherit;text-decoration:none}.msn-shell{pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:22px;width:100%;max-width:1180px;height:68px;margin-top:0;padding:0 12px 0 22px;border:1px solid transparent;border-radius:20px;background:transparent;transition:max-width .5s cubic-bezier(.34,1.32,.5,1),height .38s cubic-bezier(.34,1.2,.5,1),margin-top .38s ease,padding .38s ease,background-color .3s ease,border-color .3s ease}
-.msn-nav.is-floating .msn-shell{max-width:960px;height:58px;margin-top:12px;padding:0 10px 0 20px;border-color:color-mix(in srgb,var(--ink) 10%,transparent);background:color-mix(in srgb,var(--paper) 74%,transparent);-webkit-backdrop-filter:saturate(170%) blur(16px);backdrop-filter:saturate(170%) blur(16px)}
-.msn-nav.is-compact .msn-shell{max-width:560px;height:52px}.msn-brand{flex:none;font-size:25px;font-weight:800;line-height:1;letter-spacing:-.045em;transition:font-size .38s cubic-bezier(.34,1.2,.5,1),transform .18s ease}.msn-brand span{color:var(--accent)}.msn-brand:hover{transform:translateY(-1px)}.msn-nav.is-compact .msn-brand{font-size:22px}
-.msn-links{display:flex;gap:28px;max-width:640px;overflow:hidden;opacity:1;transition:max-width .45s cubic-bezier(.34,1.2,.5,1),opacity .28s ease,transform .3s ease,gap .35s ease}.msn-nav.is-compact .msn-links{max-width:0;gap:0;opacity:0;transform:translateY(-8px);pointer-events:none}.msn-links a{position:relative;color:var(--muted);font-size:14px;font-weight:480;white-space:nowrap;transition:color .15s ease}.msn-links a:after{content:"";position:absolute;right:0;bottom:-5px;left:0;height:2px;border-radius:2px;background:var(--accent);transform:scaleX(0);transform-origin:0 50%;transition:transform .28s cubic-bezier(.2,.7,.2,1)}.msn-links a:hover,.msn-links a[aria-current]{color:var(--ink)}.msn-links a:hover:after,.msn-links a[aria-current]:after{transform:scaleX(1)}
-.msn-actions{display:flex;flex:none;align-items:center;gap:10px}.msn-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:620;white-space:nowrap;transition:height .38s ease,font-size .38s ease,padding .38s ease,background-color .18s ease,transform .18s ease}.msn-button svg{width:17px;height:17px}.msn-button:hover{background:color-mix(in srgb,var(--surface) 80%,var(--paper));transform:translateY(-2px)}.msn-button:active{transform:translateY(0) scale(.97)}.msn-icon-button{width:42px;padding:0}.msn-nav.is-compact .msn-button{height:36px;padding:0 14px;font-size:12.5px}.msn-nav.is-compact .msn-icon-button{width:36px;padding:0}
-@media(max-width:900px){.msn-links{display:none}.msn-nav.is-floating .msn-shell{max-width:680px}.msn-nav.is-compact .msn-shell{max-width:520px}}
-@media(max-width:560px){.msn-nav{padding:0 12px}.msn-shell,.msn-nav.is-floating .msn-shell,.msn-nav.is-compact .msn-shell{gap:12px;height:60px;padding:0 4px 0 10px}.msn-nav.is-floating .msn-shell,.msn-nav.is-compact .msn-shell{height:52px}.msn-brand,.msn-nav.is-compact .msn-brand{font-size:23px}.msn-actions{gap:7px}.msn-button,.msn-nav.is-compact .msn-button{height:40px;padding:0 13px;font-size:13px}.msn-nav.is-floating .msn-button,.msn-nav.is-compact .msn-button{height:36px}.msn-icon-button,.msn-nav.is-compact .msn-icon-button{width:40px;padding:0}.msn-nav.is-floating .msn-icon-button,.msn-nav.is-compact .msn-icon-button{width:36px}}
+.msn-nav{--paper:#121413;--ink:#edf1ee;--muted:#aab3ae;position:fixed;z-index:100;top:0;right:0;left:0;display:flex;justify-content:center;padding:0 20px;pointer-events:none;font-family:"Geist Variable",ui-sans-serif,system-ui,sans-serif;color:var(--ink)}
+.msn-nav *{box-sizing:border-box}.msn-nav a{color:inherit;text-decoration:none}
+.msn-shell{pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:22px;width:100%;max-width:1180px;height:68px;margin-top:0;padding:0 16px 0 22px;border:1px solid transparent;border-radius:20px;background:transparent;transition:max-width .5s cubic-bezier(.34,1.32,.5,1),height .38s cubic-bezier(.34,1.2,.5,1),margin-top .38s ease,padding .38s ease,background-color .3s ease,border-color .3s ease}
+.msn-nav.is-floating .msn-shell{max-width:960px;height:58px;margin-top:12px;padding:0 10px 0 20px;border-color:color-mix(in srgb,var(--ink) 10%,transparent);background:color-mix(in srgb,var(--paper) 35%,transparent);-webkit-backdrop-filter:saturate(160%) blur(20px);backdrop-filter:saturate(160%) blur(20px)}
+.msn-nav.is-compact .msn-shell{max-width:470px;height:52px}
+.msn-brand{display:inline-flex;align-items:center;gap:10px;flex:none;font-size:25px;font-weight:800;line-height:1;letter-spacing:-.045em;transition:font-size .38s cubic-bezier(.34,1.2,.5,1)}
+.msn-brand img{border-radius:50%}.msn-nav.is-compact .msn-brand{font-size:22px}
+.msn-links{display:flex;gap:4px}
+.msn-actions{display:flex;flex:none;align-items:center}
+.msn-actions:before{content:"";display:none;width:1px;height:20px;margin:0 6px;background:color-mix(in srgb,var(--ink) 14%,transparent)}
+.msn-links a,.msn-actions a{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 12px;border-radius:10px;color:var(--muted);font-size:14px;font-weight:700;white-space:nowrap;transition:color .15s ease,background-color .15s ease}
+.msn-links a svg,.msn-actions a svg{width:19px;height:19px;flex:none}
+.msn-links a:hover,.msn-actions a:hover,.msn-links a[aria-current]{color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.msn-label{display:inline-block;max-width:120px;margin-left:8px;overflow:hidden;opacity:1;transition:max-width .24s cubic-bezier(.3,.8,.3,1),margin-left .24s ease,opacity .18s ease}
+.msn-nav.is-compact .msn-shell{justify-content:flex-start}
+.msn-nav.is-compact .msn-links{margin-left:auto;gap:2px}
+.msn-nav.is-compact .msn-label{max-width:0;margin-left:0;opacity:0}
+.msn-nav.is-compact .msn-links a,.msn-nav.is-compact .msn-actions a{padding:0 10px}
+.msn-nav.is-compact .msn-actions:before{display:block}
+@media(min-width:901px){.msn-nav.is-compact a.is-open .msn-label,.msn-nav.is-compact .msn-links a:focus-visible .msn-label,.msn-nav.is-compact .msn-actions a:focus-visible .msn-label{max-width:120px;margin-left:8px;opacity:1}}
+@media(max-width:900px){.msn-shell,.msn-nav.is-floating .msn-shell{justify-content:flex-start}.msn-label{display:none}.msn-links{margin-left:auto;gap:2px}.msn-links a,.msn-actions a{padding:0 10px}.msn-actions:before{display:block}.msn-nav.is-floating .msn-shell{max-width:680px}.msn-nav.is-compact .msn-shell{max-width:470px}}
+@media(max-width:560px){.msn-nav{padding:0 12px}.msn-shell,.msn-nav.is-floating .msn-shell,.msn-nav.is-compact .msn-shell{gap:8px;height:60px;padding:0 8px 0 10px}.msn-nav.is-floating .msn-shell,.msn-nav.is-compact .msn-shell{height:52px}.msn-brand,.msn-nav.is-compact .msn-brand{font-size:21px}.msn-links a,.msn-actions a,.msn-nav.is-compact .msn-links a,.msn-nav.is-compact .msn-actions a{padding:0 8px}.msn-actions:before{margin:0 4px}}
 @media(prefers-reduced-motion:reduce){.msn-nav *,.msn-shell{transition-duration:.01ms!important}}
 `;
