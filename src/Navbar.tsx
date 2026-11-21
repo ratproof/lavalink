@@ -13,7 +13,7 @@ const SITE = "https://stains.rocks";
 const DEFAULT_LINKS: ScrollNavLink[] = [
   { label: "Commands", href: `${SITE}/commands` },
   { label: "Embeds", href: `${SITE}/embeds` },
-  { label: "Status", href: "/", current: true },
+  { label: "Status", href: `${SITE}/status` },
   { label: "Support", href: "https://discord.gg/longest" },
 ];
 
