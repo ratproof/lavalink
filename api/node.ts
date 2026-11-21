@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 /**
@@ -10,6 +12,20 @@ const TIMEOUT_MS = 4000;
 // Fallbacks used when the env vars are not set in Vercel. Keep this repo private.
 const DEFAULT_URL = "https://audio.stains.rocks";
 const DEFAULT_PASSWORD = "youshallnotpass";
+
+/**
+ * Lavalink has no endpoint that lists sessions, so the bot commits its current
+ * session id to session.json (see stains-bot). LAVALINK_SESSION_ID overrides it.
+ */
+function sessionId(): string | undefined {
+  if (process.env.LAVALINK_SESSION_ID) return process.env.LAVALINK_SESSION_ID;
+  try {
+    const file = JSON.parse(readFileSync(join(process.cwd(), "session.json"), "utf8")) as { sessionId?: string | null };
+    return file.sessionId || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 async function lavalink<T>(path: string): Promise<{ data: T; ms: number }> {
   const base = (process.env.LAVALINK_URL || DEFAULT_URL).replace(/\/+$/, "");
@@ -40,10 +56,10 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     ]);
 
     let players: unknown = null;
-    const sessionId = process.env.LAVALINK_SESSION_ID;
-    if (sessionId) {
+    const session = sessionId();
+    if (session) {
       try {
-        const raw = await lavalink<RawPlayer[]>(`/v4/sessions/${encodeURIComponent(sessionId)}/players`);
+        const raw = await lavalink<RawPlayer[]>(`/v4/sessions/${encodeURIComponent(session)}/players`);
         // Only safe fields. The raw player also holds the voice token.
         players = raw.data.map((p) => ({
           guildId: p.guildId,
