@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNode } from "./useNode";
-import { bytes, clock, pct, uptime } from "./format";
-import type { PlayerRow } from "./types";
+import { bytes, pct, uptime } from "./format";
 import { resolveSources } from "./sources";
 import Navbar from "./Navbar";
 
@@ -127,27 +126,6 @@ function Checks({ history }: { history: boolean[] }) {
   );
 }
 
-function NowPlaying({ players }: { players: PlayerRow[] }) {
-  const active = players.filter((p) => p.title);
-  if (active.length === 0) return null;
-  return (
-    <section className="mt-8">
-      <h2 className="mb-3 text-sm font-medium text-[var(--color-text-muted)]">Now playing</h2>
-      <Panel>
-        {active.map((p) => (
-          <div key={p.guildId} className="flex items-center justify-between gap-4 border-b border-[var(--color-line)] px-5 py-3.5 last:border-0">
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{p.title}</div>
-              <div className="truncate text-sm text-[var(--color-text-muted)]">{p.author}</div>
-            </div>
-            <span className="shrink-0 text-sm text-[var(--color-text-muted)]">{p.paused ? "Paused" : p.isStream ? "Live" : clock(p.position)}</span>
-          </div>
-        ))}
-      </Panel>
-    </section>
-  );
-}
-
 export default function App() {
   const { data, failed } = useNode();
   const [history, setHistory] = useState<boolean[]>([]);
@@ -209,8 +187,6 @@ export default function App() {
             <section className="mt-8">
               <Checks history={history} />
             </section>
-
-            {data?.players && <NowPlaying players={data.players} />}
 
             <p className="mt-10 text-xs text-[var(--color-text-muted)]">Lavalink {info.version.semver}. Refreshes every 5 seconds.</p>
           </div>
